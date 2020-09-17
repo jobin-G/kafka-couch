@@ -16,6 +16,7 @@
 
 import os   # need this for popen
 import time  # for sleep
+import json
 from kafka import KafkaProducer  # producer of events
 
 # We can make this more sophisticated/elegant but for now it is just
@@ -24,8 +25,9 @@ from kafka import KafkaProducer  # producer of events
 # acquire the producer
 # (you will need to change this to your bootstrap server's IP addr)
 # VM2 float ip
-producer = KafkaProducer(bootstrap_servers="18.221.138.132: 9092",
-                         acks=1)  # wait for leader to write to log
+producer = KafkaProducer(value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+                        bootstrap_servers="18.221.138.132:9092",
+                        acks=1)  # wait for leader to write to log
 
 # say we send the contents 100 times after a sleep of 1 sec in between
 for i in range(100):
@@ -44,7 +46,7 @@ for i in range(100):
     # You will need to modify it to send a JSON structure, say something
     # like <timestamp, contents of top>
     #
-    producer.send("utilizations", value=bytes(contents, 'ascii'))
+    producer.send("utilizations", {"timestamp":time.time(), "contents":contents})
     producer.flush()   # try to empty the sending buffer
 
     # sleep a second
