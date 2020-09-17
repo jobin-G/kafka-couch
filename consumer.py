@@ -13,6 +13,8 @@
 
 import os   # need this for popen
 import time # for sleep
+import json
+import couchdb
 from kafka import KafkaConsumer  # consumer of events
 
 # We can make this more sophisticated/elegant but for now it is just
@@ -25,6 +27,13 @@ consumer = KafkaConsumer (bootstrap_servers="192.168.15.3:9092")
 # subscribe to topic
 consumer.subscribe (topics=["utilizations"])
 
+#Line assumes CouchDB was set up with admin/admin as username/password
+couch = couchdb.Server('http://admin:admin@localhost:5984')
+
+#Run once on the VM to create a db
+#couch.create('test')
+db = couch['test']
+
 # we keep reading and printing
 for msg in consumer:
     # what we get is a record. From this record, we are interested in printing
@@ -35,10 +44,9 @@ for msg in consumer:
     #
     # convert the value field into string (ASCII)
     #
-    # Note that I am not showing code to obtain the incoming data as JSON
-    # nor am I showing any code to connect to a backend database sink to
-    # dump the incoming data. You will have to do that for the assignment.
-    print (str(msg.value, 'ascii'))
+    parsed_json = json.loads(msg.value)
+    db.save({'timestamp': parsed_json['timestamp'], 'content': parsed_json['contents']})
+    print('Record saved.')
 
 # we are done. As such, we are not going to get here as the above loop
 # is a forever loop.
